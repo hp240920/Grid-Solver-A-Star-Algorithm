@@ -1,4 +1,5 @@
 import random
+import copy
 
 start = None
 end = None
@@ -70,22 +71,22 @@ def getDistance(startCoor, endCoor):
 
 
 def getNorth(coor):
-    tempc = [coor[0] - 1 , coor[1] ];
+    tempc = [coor[0] - 1, coor[1]];
     return tempc
 
 
 def getSouth(coor):
-    tempc = [coor[0] + 1 , coor[1]];
+    tempc = [coor[0] + 1, coor[1]];
     return tempc;
 
 
 def getEast(coor):
-    tempc = [coor[0] , coor[1] + 1 ];
+    tempc = [coor[0], coor[1] + 1];
     return tempc
 
 
 def getWest(coor):
-    tempc = [coor[0] ,coor[1] - 1];
+    tempc = [coor[0], coor[1] - 1];
     return tempc
 
 
@@ -97,34 +98,95 @@ def findBestMove(arr, coor):
     w = 1000
     coorList = list(coor)
 
-
-    if 0 <= getNorth(coorList)[0] < len(arr) and (arr[getNorth(coorList)[0]][coorList[1]] is None or arr[getNorth(coorList)[0]][coorList[1]] == 'T'):
+    if 0 <= getNorth(coorList)[0] < len(arr) and (
+            arr[getNorth(coorList)[0]][coorList[1]] is None or arr[getNorth(coorList)[0]][coorList[1]] == 'T'):
         n = getDistance(getNorth(coorList), end)
-    if 0 <= getSouth(coorList)[0] < len(arr) and (arr[getSouth(coorList)[0]][coorList[1]] is None or arr[getSouth(coorList)[0]][coorList[1]] == 'T' ):
+    if 0 <= getSouth(coorList)[0] < len(arr) and (
+            arr[getSouth(coorList)[0]][coorList[1]] is None or arr[getSouth(coorList)[0]][coorList[1]] == 'T'):
         s = getDistance(getSouth(coorList), end)
-    if 0 <= getEast(coorList)[1] < len(arr) and (arr[coorList[0]][getEast(coorList)[1]] is None or arr[coorList[0]][getEast(coorList)[1]] == 'T'):
+    if 0 <= getEast(coorList)[1] < len(arr) and (
+            arr[coorList[0]][getEast(coorList)[1]] is None or arr[coorList[0]][getEast(coorList)[1]] == 'T'):
         e = getDistance(getEast(coorList), end)
-    if 0 <= getWest(coorList)[1] < len(arr) and (arr[coorList[0]][getWest(coorList)[1]] is None or arr[coorList[0]][getWest(coorList)[1]] == 'T'):
+    if 0 <= getWest(coorList)[1] < len(arr) and (
+            arr[coorList[0]][getWest(coorList)[1]] is None or arr[coorList[0]][getWest(coorList)[1]] == 'T'):
         w = getDistance(getWest(coorList), end)
 
-    newList = [n,s,e,w]
+    newList = [n, s, e, w]
     min_dis = min(n, s, e, w)
-    max_dis = max(n,s,e,w)
+
     if min_dis == 1000:
-        return None
+        return None,None
+    direction = [0, 0, 0, 0]
+    direction2 = [0, 0, 0, 0]
+    if newList.count(min_dis) > 1:
+        print("Two Ways possible")
+        index = newList.index(min_dis, 0, 4)
+        direction[index] = 1
+        newList.reverse()
+        index2 = 3-newList.index(min_dis, 0, 4)
+        direction2[index2] = 1
+        return direction, direction2
+
     index = newList.index(min_dis, 0, 4)
     direction = [0, 0, 0, 0]
     direction[index] = 1
-    return direction
+    if direction == [0,0,0,0]:
+        return None,None
+    return direction, None
 
+
+def makeMove(arr, currentList,move):
+    if arr[currentList[0]][currentList[1]] != 'A':
+        arr[currentList[0]][currentList[1]] = 2
+        arr[currentList[0]][currentList[1]] = '(////)'
+    if move == [1, 0, 0, 0]:
+        currentList = getNorth(currentList)
+    elif move == [0, 1, 0, 0]:
+        currentList = getSouth(currentList)
+    elif move == [0, 0, 1, 0]:
+        currentList = getEast(currentList)
+    elif move == [0, 0, 0, 1]:
+        currentList = getWest(currentList)
+    return currentList
+
+
+def solve(arr, currentList, stack):
+
+    printGrid(arr)
+    if currentList == endList:
+        print("END NOW REACHED")
+        return stack
+
+    move, move2 = findBestMove(arr, currentList)
+
+    if move != None and move2 != None:
+
+        copyarr = copy.deepcopy(arr)
+        stack.append(currentList)
+        stackcopy = copy.copy(stack)
+        minStack =  min(solve(copyarr,makeMove(copyarr,currentList,move),stackcopy),solve(copyarr,makeMove(copyarr,currentList,move2),stackcopy))
+        print (minStack)
+        return minStack
+
+    if move != None:
+        # directionGrid[currentList[0]][currentList[1]] = Directions(move)
+        stack.append(currentList)
+        return solve(arr,makeMove(arr,currentList,move),stack)
+    else:
+        if (len(stack) == 0):
+            print(" NO SOLUTION ")
+            return None
+        else:
+            prev = stack.pop()
+            arr[currentList[0]][currentList[1]] = -2
+            currentList = prev
+            return solve(arr, currentList, stack)
 
 if __name__ == '__main__':
-    sizeOfGrid = 25
+    sizeOfGrid = 10
     arr = makeSquareGrid(sizeOfGrid)
     arr = fillGrid(arr)
 
-    showGrid = makeSquareGrid(sizeOfGrid)
-    showGrid = arr
 
     directionGrid = makeSquareGrid(sizeOfGrid)
     printGrid(arr)
@@ -132,35 +194,7 @@ if __name__ == '__main__':
     stack = []
     currentList = list(current)
     endList = list(end)
-
-    while currentList != endList:
-
-        print(currentList)
-        move = findBestMove(arr, currentList)
-        if move != None:
-            directionGrid[currentList[0]][currentList[1]] = Directions(move)
-            stack.append(currentList)
-
-            if showGrid[currentList[0]][currentList[1]] != 'A':
-                arr[currentList[0]][currentList[1]] = 2
-                showGrid[currentList[0]][currentList[1]] = '(////)'
-            if move == [1, 0, 0, 0]:
-                currentList = getNorth(currentList)
-            if move == [0, 1, 0, 0]:
-                currentList = getSouth(currentList)
-            if move == [0, 0, 1, 0]:
-                currentList = getEast(currentList)
-            if move == [0, 0, 0, 1]:
-                currentList = getWest(currentList)
-        else:
-            if (len(stack) == 0):
-                print(" NO SOLUTION ")
-                break
-            else:
-                prev = stack.pop()
-                arr[currentList[0]][currentList[1]] = -2
-                currentList = prev
-    #printGrid(arr)
-    printGrid(showGrid)
+    stack = solve(arr, currentList, stack)
+    # printGrid(arr)
+    printGrid(arr)
     print(stack)
-
