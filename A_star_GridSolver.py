@@ -6,7 +6,7 @@ end = None
 
 class Node:
     # constructor
-    def __init__(self, parent=None , position = None, next=None):
+    def __init__(self, parent=None, position=None, next=None):
         self.parent = parent
         self.position = position
         self.f = 0
@@ -58,6 +58,15 @@ class LinkedList:
             self.head = ptr.next
             ptr.next = None
             return ptr
+
+    def find(self, check_node):
+        ptr = self.head
+        while ptr is not None:
+            if ptr.position == check_node.position:
+                return ptr
+            else:
+                ptr = ptr.next
+        return None
 
     def printLL(self):
         ptr = self.head
@@ -137,7 +146,7 @@ def getWest(coor):
     return tempc
 
 
-def findAllMoves(arr, coor,neighbourLL):
+def findAllMoves(arr, coor, neighbourLL):
     global end
     n = None
     s = None
@@ -154,7 +163,7 @@ def findAllMoves(arr, coor,neighbourLL):
     if 0 <= getNorth(coorList)[0] < len(arr) and (
             arr[getNorth(coorList)[0]][coorList[1]] is None or arr[getNorth(coorList)[0]][coorList[1]] == 'T'):
         ncoor = getNorth(coorList)
-        node = Node(None,ncoor,None)
+        node = Node(None, ncoor, None)
         neighbourLL.push(node)
 
     if 0 <= getSouth(coorList)[0] < len(arr) and (
@@ -181,53 +190,65 @@ def solve(arr, open, closed):
 
         current = open.pop()
 
-        if current.position == endNode.position:
+        if current.position == list(endNode.position):
             break
 
         neighbourLL = LinkedList()
-        neighbours = findAllMoves(arr, current.position ,neighbourLL)
-        while neighbours.pop():
+        neighbours = findAllMoves(arr, current.position, neighbourLL)
+        while neighbours.head is not None:
+            neighbour = neighbours.pop()
             cost = current.g + 1
-            if open.search(neighbour) is True:
-                if getDistance(neighbour.coor, currentList) <= cost: continue
-            elif closed.search(neighbour) is True:
-                if getDistance(neighbour.coor, currentList) <= cost: continue
+            nodeOpen = open.find(neighbour)
+            nodeClosed = closed.find(neighbour)
+            if nodeOpen is not None:
+                if nodeOpen.g <= cost: continue
+            elif nodeClosed is not None:
+                if nodeClosed.g <= cost: continue
+                prev = closed.head
+                if prev == nodeClosed:
+                    closed.pop()
+                    nodeClosed.g = cost
+                    nodeClosed.parent = current
+                    nodeClosed.f = nodeClosed.g + nodeClosed.h
+                    open.push(nodeClosed)
+                    continue
+                while prev.next != nodeClosed:
+                    prev = prev.next
+                prev.next = nodeClosed.next
+                nodeClosed.next = None
+                nodeClosed.g = cost
+                nodeClosed.parent = current
+                nodeClosed.f = nodeClosed.g + nodeClosed.h
+                open.push(nodeClosed)
+                continue
             else:
-                open.newNode(neighbour)
-                neighbour.h = getDistance(neighbour.coor, goalList)
-            neighbour.g = cost
+                neighbour.h = getDistance(neighbour.position, end)
+                neighbour.g = cost
+                neighbour.f = neighbour.h + neighbour.g
+                neighbour.parent = current
+                open.push(neighbour)
+        closed.push(current)
+    if current.position == list(endNode.position):
+        current = current.parent
+        while current is not None:
+            nodepos = current.position
+            if arr[nodepos[0]][nodepos[1]] != 'A':
+                arr[current.position[0]][current.position[1]] = "////"
+            current = current.parent
+    else:
+        print("NO SOLUTION")
+
+
+def removeNone(arr):
+    for i in range(len(arr)):
+        for j in range(len(arr)):
+            if arr[i][j] is None:
+                arr[i][j] = -1
 
 
 if __name__ == '__main__':
-    listLL = LinkedList()
 
-    node1 = Node()
-    node1.f = 11
-    listLL.push(node1)
-
-    node2 = Node()
-    node2.f = 20
-    listLL.push(node2)
-
-    node3 = Node()
-    node3.f = 23
-    listLL.push(node3)
-
-    node4 = Node()
-    node4.f = 25
-    listLL.push(node4)
-
-    node5 = Node()
-    node5.f = 13
-    listLL.push(node5)
-
-    listLL.printLL()
-
-    popped = listLL.pop()
-
-
-
-    sizeOfGrid = 10
+    sizeOfGrid = 101
     arr = makeSquareGrid(sizeOfGrid)
     arr = fillGrid(arr)
 
@@ -235,9 +256,9 @@ if __name__ == '__main__':
 
     h = getDistance(start, end)
 
-    startNode = Node(None,start,None)
+    startNode = Node(None, start, None)
     startNode.f = h
-    endNode = Node(None,end,None)
+    endNode = Node(None, end, None)
 
     open = LinkedList()
     open.push(startNode)
@@ -246,4 +267,7 @@ if __name__ == '__main__':
     solve(arr, open, closed)
 
     # printGrid(arr)
+
+    removeNone(arr)
     printGrid(arr)
+
